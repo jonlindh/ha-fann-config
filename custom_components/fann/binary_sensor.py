@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
-from homeassistant.components.binary_sensor import BinarySensorEntity, BinarySensorDeviceClass
+from homeassistant.components.binary_sensor import (
+    BinarySensorDeviceClass,
+    BinarySensorEntity,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, MODEL_ECOTREAT
+from .const import DOMAIN
 from .entity import FannEntity
 
 
@@ -20,11 +23,10 @@ async def async_setup_entry(
     data = hass.data[DOMAIN][entry.entry_id]
     coordinator = data["coordinator"]
 
-    entities = []
-
-    for dbid, device in coordinator.data.items():
-        if device.model == MODEL_ECOTREAT:
-            entities.append(FannConnectedBinarySensor(coordinator, dbid))
+    entities = [
+        FannConnectedBinarySensor(coordinator, dbid)
+        for dbid in coordinator.data
+    ]
 
     async_add_entities(entities)
 

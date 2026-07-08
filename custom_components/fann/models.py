@@ -35,3 +35,23 @@ class FannDevice:
         if self.model == MODEL_ECOTREAT:
             return "EkoTreat"
         return self.model or self.nickname
+        
+    @property
+    def transition(self) -> str | None:
+        if self.state == "waking":
+            return "starting"
+        if self.state == "sleeping":
+            return "stopping"
+        return None
+
+    @property
+    def status_display(self) -> str:
+        if self.state == "on":
+            return "On"
+        if self.state == "off":
+            return "Sleeping"
+        if self.state == "waking":
+            return "Starting"
+        if self.state == "sleeping":
+            return "Stopping"
+        return self.raw_status
