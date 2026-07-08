@@ -48,8 +48,6 @@ class FannApi:
         """Login to FANN."""
         await self.connect()
 
-        _LOGGER.debug("Logging into FANN")
-
         async with self._session.post(
             LOGIN_URL,
             data={
@@ -58,19 +56,15 @@ class FannApi:
             },
         ) as response:
             response.raise_for_status()
-            text = await response.text()
-
-        if "login" in text.lower() and "not available" in text.lower():
-            raise FannAuthError("FANN login failed")
+            await response.text()
 
         self._logged_in = True
+        _LOGGER.debug("Logged in to FANN")
 
     async def ensure_login(self) -> None:
         """Ensure active login session."""
-        if self._logged_in:
-            return
-
-        await self.login()
+        if not self._logged_in:
+            await self.login()
 
     async def get_devices(self):
         """Download and parse devices."""
@@ -80,15 +74,13 @@ class FannApi:
         """Download devices and retry once if session expired."""
         await self.ensure_login()
 
-        _LOGGER.debug("Downloading dynamic.jsp")
-
         async with self._session.get(DYNAMIC_URL) as response:
             response.raise_for_status()
             text = await response.text()
 
         if "login" in text.lower() and "serial" in text.lower():
             if retry:
-                _LOGGER.debug("FANN session appears expired, logging in again")
+                _LOGGER.debug("FANN session expired, logging in again")
                 self._logged_in = False
                 await self.login()
                 return await self._get_devices_with_retry(retry=False)
@@ -96,11 +88,11 @@ class FannApi:
             raise FannAuthError("FANN session expired")
 
         payload = json.loads(text)
-
         html = payload[0]["data"]
+
         devices = parse_dynamic(html)
 
-        _LOGGER.debug("Found %d devices", len(devices))
+        _LOGGER.debug("Found %d FANN devices", len(devices))
 
         return devices
 
@@ -113,7 +105,7 @@ class FannApi:
         await self._set_state(dbid, "Z")
 
     async def _set_state(self, dbid: int, state: str, retry: bool = True) -> None:
-        """Set FANN device state."""
+        """Set device state."""
         await self.ensure_login()
 
         async with self._session.get(

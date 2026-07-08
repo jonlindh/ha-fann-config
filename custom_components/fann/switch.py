@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
-
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -69,19 +67,15 @@ class FannEkoTreatSwitch(FannEntity, SwitchEntity):
     async def async_turn_on(self, **kwargs) -> None:
         """Wake EkoTreat."""
         await self.coordinator.api.wake(self._dbid)
-        await self._poll_until_expected(True)
+        await self.coordinator.refresh_until(
+            self._dbid,
+            lambda device: device.is_on,
+        )
 
     async def async_turn_off(self, **kwargs) -> None:
         """Put EkoTreat to sleep."""
         await self.coordinator.api.sleep(self._dbid)
-        await self._poll_until_expected(False)
-
-    async def _poll_until_expected(self, expected_on: bool) -> None:
-        """Refresh several times after command."""
-        for _ in range(12):
-            await asyncio.sleep(5)
-            await self.coordinator.async_request_refresh()
-
-            device = self.device
-            if device and device.is_on == expected_on:
-                return
+        await self.coordinator.refresh_until(
+            self._dbid,
+            lambda device: not device.is_on,
+        )

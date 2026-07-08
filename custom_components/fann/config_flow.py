@@ -5,12 +5,12 @@ from __future__ import annotations
 import voluptuous as vol
 
 from homeassistant import config_entries
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.selector import (
     TextSelector,
     TextSelectorConfig,
     TextSelectorType,
 )
-from homeassistant.exceptions import HomeAssistantError
 
 from .api import FannApi
 from .const import CONF_KEY, CONF_SERIAL, DOMAIN
