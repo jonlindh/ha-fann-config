@@ -52,7 +52,7 @@ class FannApi:
 
         _LOGGER.debug("Logging in to FANN")
 
-        text = await self._raw_request(
+        await self._raw_request(
             "POST",
             LOGIN_URL,
             data={
@@ -60,10 +60,6 @@ class FannApi:
                 "key": self._key,
             },
         )
-
-        if self._looks_like_login_page(text):
-            self._logged_in = False
-            raise FannAuthError("FANN login failed")
 
         self._logged_in = True
         _LOGGER.debug("Logged in to FANN")
