@@ -44,8 +44,7 @@ def parse_dynamic(html: str) -> list[FannDevice]:
                 state=_parse_state(raw_status, next_action),
                 raw_status=raw_status,
                 next_action=next_action,
-                people=attributes.get("People"),
-                schedule=attributes.get("Run schedule"),
+                attributes=attributes,
             )
         )
 
@@ -123,15 +122,16 @@ def _parse_info_attributes(info: str) -> dict[str, Any]:
     """Parse dynamic info field into attributes."""
     attributes: dict[str, Any] = {}
 
-    if not info:
+    if not info or ":" not in info:
         return attributes
 
-    people = re.search(r"People:(\d+)", info)
-    if people:
-        attributes["People"] = int(people.group(1))
+    key, value = info.split(":", 1)
+    key = key.strip()
+    value = value.strip()
 
-    schedule = re.search(r"Run schedule:(.+)", info)
-    if schedule:
-        attributes["Run schedule"] = schedule.group(1).strip()
+    if value.isdigit():
+        attributes[key] = int(value)
+    else:
+        attributes[key] = value
 
     return attributes
