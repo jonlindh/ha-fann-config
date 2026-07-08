@@ -49,7 +49,7 @@ class FannDevice:
     @property
     def status_display(self) -> str:
         if self.state == "on":
-            return "On"
+            return "Running"
         if self.state == "off":
             return "Sleeping"
         if self.state == "waking":

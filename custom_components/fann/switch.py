@@ -31,7 +31,7 @@ async def async_setup_entry(
 class FannDeviceSwitch(FannEntity, SwitchEntity):
     """FANN device switch."""
 
-    _attr_name = None
+    _attr_name = "Power"
     _attr_icon = "mdi:water-pump"
 
     def __init__(self, coordinator, dbid: int) -> None:
