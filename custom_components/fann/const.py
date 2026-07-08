@@ -7,6 +7,7 @@ PLATFORMS = [
     "switch",
     "sensor",
     "binary_sensor",
+    "button",
 ]
 
 BASE_URL = "https://fannconfig.se"
