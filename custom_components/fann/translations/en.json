@@ -1,0 +1,20 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "FANN Config",
+        "description": "Enter your FANN Config login details.",
+        "data": {
+          "serial": "Serial",
+          "key": "Key"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not connect to FANN Config. Check serial/key."
+    },
+    "abort": {
+      "already_configured": "FANN Config is already configured."
+    }
+  }
+}

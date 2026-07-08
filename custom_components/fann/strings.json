@@ -1,0 +1,20 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "FANN Config",
+        "description": "Ange dina inloggningsuppgifter för FANN Config.",
+        "data": {
+          "serial": "Serial",
+          "key": "Key"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Kunde inte ansluta till FANN Config. Kontrollera serial/key."
+    },
+    "abort": {
+      "already_configured": "FANN Config är redan konfigurerad."
+    }
+  }
+}
