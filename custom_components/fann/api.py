@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import json
 import logging
+from typing import Any
 
 import aiohttp
 
 from .const import DYNAMIC_URL, LOGIN_URL, ZZZ_URL
+from .models import FannDevice
 from .parser import parse_dynamic
 
 _LOGGER = logging.getLogger(__name__)
@@ -48,49 +50,42 @@ class FannApi:
         """Login to FANN."""
         await self.connect()
 
-        async with self._session.post(
+        _LOGGER.debug("Logging in to FANN")
+
+        text = await self._raw_request(
+            "POST",
             LOGIN_URL,
             data={
                 "serial": self._serial,
                 "key": self._key,
             },
-        ) as response:
-            response.raise_for_status()
-            await response.text()
+        )
+
+        if self._looks_like_login_page(text):
+            self._logged_in = False
+            raise FannAuthError("FANN login failed")
 
         self._logged_in = True
         _LOGGER.debug("Logged in to FANN")
 
     async def ensure_login(self) -> None:
-        """Ensure active login session."""
+        """Ensure login session."""
         if not self._logged_in:
             await self.login()
 
-    async def get_devices(self):
-        """Download and parse devices."""
-        return await self._get_devices_with_retry()
+    async def get_devices(self) -> list[FannDevice]:
+        """Get FANN devices."""
+        text = await self._request("GET", DYNAMIC_URL)
 
-    async def _get_devices_with_retry(self, retry: bool = True):
-        """Download devices and retry once if session expired."""
-        await self.ensure_login()
+        try:
+            payload = json.loads(text)
+        except json.JSONDecodeError as err:
+            raise FannApiError("Could not parse FANN device response") from err
 
-        async with self._session.get(DYNAMIC_URL) as response:
-            response.raise_for_status()
-            text = await response.text()
+        if not payload or "data" not in payload[0]:
+            raise FannApiError("Unexpected FANN device response")
 
-        if "login" in text.lower() and "serial" in text.lower():
-            if retry:
-                _LOGGER.debug("FANN session expired, logging in again")
-                self._logged_in = False
-                await self.login()
-                return await self._get_devices_with_retry(retry=False)
-
-            raise FannAuthError("FANN session expired")
-
-        payload = json.loads(text)
-        html = payload[0]["data"]
-
-        devices = parse_dynamic(html)
+        devices = parse_dynamic(payload[0]["data"])
 
         _LOGGER.debug("Found %d FANN devices", len(devices))
 
@@ -98,32 +93,65 @@ class FannApi:
 
     async def wake(self, dbid: int) -> None:
         """Wake device."""
-        await self._set_state(dbid, "W")
+        await self.set_state(dbid, "W")
 
     async def sleep(self, dbid: int) -> None:
         """Put device to sleep."""
-        await self._set_state(dbid, "Z")
+        await self.set_state(dbid, "Z")
 
-    async def _set_state(self, dbid: int, state: str, retry: bool = True) -> None:
+    async def set_state(self, dbid: int, state: str) -> None:
         """Set device state."""
-        await self.ensure_login()
-
-        async with self._session.get(
+        await self._request(
+            "GET",
             ZZZ_URL,
             params={
                 "id": dbid,
                 "state": state,
             },
-        ) as response:
-            response.raise_for_status()
-            text = await response.text()
+        )
 
-        if "login" in text.lower() and "serial" in text.lower():
+    async def _request(
+        self,
+        method: str,
+        url: str,
+        retry: bool = True,
+        **kwargs: Any,
+    ) -> str:
+        """Authenticated request with one retry."""
+        await self.ensure_login()
+
+        text = await self._raw_request(method, url, **kwargs)
+
+        if self._looks_like_login_page(text):
             if retry:
-                _LOGGER.debug("FANN session expired during command, retrying")
+                _LOGGER.debug("FANN session expired, logging in again")
                 self._logged_in = False
                 await self.login()
-                await self._set_state(dbid, state, retry=False)
-                return
+                return await self._request(method, url, retry=False, **kwargs)
 
-            raise FannAuthError("FANN session expired during command")
+            self._logged_in = False
+            raise FannAuthError("FANN session expired")
+
+        return text
+
+    async def _raw_request(
+        self,
+        method: str,
+        url: str,
+        **kwargs: Any,
+    ) -> str:
+        """Raw HTTP request."""
+        await self.connect()
+
+        if self._session is None:
+            raise FannApiError("HTTP session not available")
+
+        async with self._session.request(method, url, **kwargs) as response:
+            response.raise_for_status()
+            return await response.text()
+
+    @staticmethod
+    def _looks_like_login_page(text: str) -> bool:
+        """Return true if response appears to be the login page."""
+        lowered = text.lower()
+        return "login" in lowered and ("serial" in lowered or "password" in lowered)
