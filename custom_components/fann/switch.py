@@ -32,6 +32,7 @@ class FannDeviceSwitch(FannEntity, SwitchEntity):
     """FANN device switch."""
 
     _attr_name = "Power"
+    _attr_has_entity_name = True
     _attr_icon = "mdi:water-pump"
 
     def __init__(self, coordinator, dbid: int) -> None:

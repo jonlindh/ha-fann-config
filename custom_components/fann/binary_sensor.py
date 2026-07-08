@@ -32,7 +32,7 @@ async def async_setup_entry(
 
 
 class FannConnectedBinarySensor(FannEntity, BinarySensorEntity):
-    _attr_name = "Connected"
+    _attr_name = "Connection"
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
     _attr_entity_category = EntityCategory.DIAGNOSTIC
 

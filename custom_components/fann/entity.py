@@ -37,3 +37,8 @@ class FannEntity(CoordinatorEntity):
     def available(self) -> bool:
         device = self.device
         return device is not None and device.connected
+    
+    @property
+    def translation_key(self) -> str:
+        """Return translation key."""
+        return ""
