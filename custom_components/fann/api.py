@@ -85,6 +85,17 @@ class FannApi:
 
         _LOGGER.debug("Found %d FANN devices", len(devices))
 
+        for device in devices:
+            _LOGGER.debug(
+                "FANN device: dbid=%s model=%s nickname=%s connected=%s state=%s raw_status=%s",
+                device.dbid,
+                device.model,
+                device.nickname,
+                device.connected,
+                device.state,
+                device.raw_status,
+            )
+
         return devices
 
     async def wake(self, dbid: int) -> None:
@@ -97,6 +108,9 @@ class FannApi:
 
     async def set_state(self, dbid: int, state: str) -> None:
         """Set device state."""
+        
+        _LOGGER.debug("Setting FANN device %s to state %s", dbid, state)
+
         await self._request(
             "GET",
             ZZZ_URL,

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -9,6 +11,8 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN, MODEL_BIOBED, MODEL_ECOTREAT
 from .entity import FannEntity
+
+_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
@@ -64,10 +68,11 @@ class FannDeviceSwitch(FannEntity, SwitchEntity):
         }
 
     async def async_turn_on(self, **kwargs) -> None:
+        device = self.device
+        _LOGGER.debug("Turning on FANN device %s (%s)", self._dbid, device.display_name if device else "unknown")
+
         await self.coordinator.api.wake(self._dbid)
-
         await self.coordinator.async_request_refresh()
-
         await self.coordinator.refresh_until(
             self._dbid,
             lambda device: device.is_on,
@@ -76,10 +81,11 @@ class FannDeviceSwitch(FannEntity, SwitchEntity):
         )
 
     async def async_turn_off(self, **kwargs) -> None:
+        device = self.device
+        _LOGGER.debug("Turning off FANN device %s (%s)", self._dbid, device.display_name if device else "unknown")
+
         await self.coordinator.api.sleep(self._dbid)
-
         await self.coordinator.async_request_refresh()
-
         await self.coordinator.refresh_until(
             self._dbid,
             lambda device: not device.is_on,

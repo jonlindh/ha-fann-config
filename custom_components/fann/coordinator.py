@@ -28,7 +28,13 @@ class FannDataUpdateCoordinator(DataUpdateCoordinator):
         self.api = api
 
     async def _async_update_data(self):
+        """Fetch data from FANN."""
+        _LOGGER.debug("Updating FANN data")
+
         devices = await self.api.get_devices()
+
+        _LOGGER.debug("Updated FANN data: %d devices", len(devices))
+
         return {device.dbid: device for device in devices}
 
     def get_device(self, dbid: int):
@@ -51,6 +57,7 @@ class FannDataUpdateCoordinator(DataUpdateCoordinator):
 
             device = self.get_device(dbid)
             if device and condition(device):
+                _LOGGER.debug("FANN device %s reached expected state: %s", dbid, device.state)
                 return
 
         _LOGGER.debug("Timed out waiting for FANN device %s to reach expected state", dbid)
