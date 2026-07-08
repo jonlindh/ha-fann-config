@@ -7,7 +7,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, MODEL_ECOTREAT
+from .const import DOMAIN, MODEL_BIOBED, MODEL_ECOTREAT
 from .entity import FannEntity
 
 
@@ -16,40 +16,35 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up FANN switches."""
-
     data = hass.data[DOMAIN][entry.entry_id]
     coordinator = data["coordinator"]
 
     entities = []
 
     for dbid, device in coordinator.data.items():
-        if device.model == MODEL_ECOTREAT:
-            entities.append(FannEkoTreatSwitch(coordinator, dbid))
+        if device.model in [MODEL_ECOTREAT, MODEL_BIOBED]:
+            entities.append(FannDeviceSwitch(coordinator, dbid))
 
     async_add_entities(entities)
 
 
-class FannEkoTreatSwitch(FannEntity, SwitchEntity):
-    """FANN EkoTreat switch."""
+class FannDeviceSwitch(FannEntity, SwitchEntity):
+    """FANN device switch."""
 
     _attr_name = None
+    _attr_icon = "mdi:water-pump"
 
     def __init__(self, coordinator, dbid: int) -> None:
-        """Initialize switch."""
         super().__init__(coordinator, dbid)
-
         self._attr_unique_id = f"fann_{dbid}_switch"
 
     @property
     def is_on(self) -> bool:
-        """Return true if device is on."""
         device = self.device
         return bool(device and device.is_on)
 
     @property
     def extra_state_attributes(self) -> dict:
-        """Return extra attributes."""
         device = self.device
 
         if device is None:
@@ -58,24 +53,35 @@ class FannEkoTreatSwitch(FannEntity, SwitchEntity):
         return {
             "dbid": device.dbid,
             "nickname": device.nickname,
+            "model": device.model,
+            "connected": device.connected,
             "raw_status": device.raw_status,
             "state": device.state,
             "next_action": device.next_action,
             "people": device.people,
+            "schedule": device.schedule,
         }
 
     async def async_turn_on(self, **kwargs) -> None:
-        """Wake EkoTreat."""
         await self.coordinator.api.wake(self._dbid)
+
+        await self.coordinator.async_request_refresh()
+
         await self.coordinator.refresh_until(
             self._dbid,
             lambda device: device.is_on,
+            interval=2,
+            timeout=60,
         )
 
     async def async_turn_off(self, **kwargs) -> None:
-        """Put EkoTreat to sleep."""
         await self.coordinator.api.sleep(self._dbid)
+
+        await self.coordinator.async_request_refresh()
+
         await self.coordinator.refresh_until(
             self._dbid,
             lambda device: not device.is_on,
+            interval=2,
+            timeout=60,
         )
